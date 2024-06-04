@@ -1,0 +1,97 @@
+version: "3.8"
+
+networks:
+  # 网络名称
+  app_network:
+    driver: bridge
+
+services:
+  nginx:
+    container_name: nacos-nginx
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "8848:8848"
+    env_file:
+      - ./env/nginx.env
+    restart: always
+    networks:
+      - app_network
+
+  nacos1:
+    hostname: nacos1
+    container_name: nacos1
+    image: nacos/nacos-server:${NACOS_VERSION:-v2.3.2-slim}
+    volumes:
+      - /docker-data/nacos-cluster/nacos1:/home/nacos/logs
+    #    ports:
+    #      - "7848:7848"
+    #      - "8848:8848"
+    #      - "9848:9848"
+    #      - "9849:9849"
+    env_file:
+      - ./env/nacos-hostname.env
+    restart: always
+    networks:
+      - app_network
+    # 依赖mysql
+    depends_on:
+      mysql:
+        # mysql健康检查
+        condition: service_healthy
+
+  nacos2:
+    hostname: nacos2
+    container_name: nacos2
+    image: nacos/nacos-server:${NACOS_VERSION:-v2.3.2-slim}
+    volumes:
+      - /docker-data/nacos-cluster/nacos2:/home/nacos/logs
+    env_file:
+      - ./env/nacos-hostname.env
+    restart: always
+    networks:
+      - app_network
+    # 依赖mysql
+    depends_on:
+      mysql:
+        # mysql健康检查
+        condition: service_healthy
+
+  nacos3:
+    hostname: nacos3
+    container_name: nacos3
+    image: nacos/nacos-server:${NACOS_VERSION:-v2.3.2-slim}
+    volumes:
+      - /docker-data/nacos-cluster/nacos3:/home/nacos/logs
+    env_file:
+      - ./env/nacos-hostname.env
+    restart: always
+    networks:
+      - app_network
+    # 依赖mysql
+    depends_on:
+      mysql:
+        # mysql健康检查
+        condition: service_healthy
+  mysql:
+    container_name: nacos-mysql
+    build:
+      #      context: ./mysql/5.7
+      context: ./mysql/8
+      dockerfile: Dockerfile
+    #    image: example/mysql:5.7
+    env_file:
+      - ./env/mysql.env
+    volumes:
+      - /docker-data/nacos-cluster/mysql:/var/lib/mysql
+    #    ports:
+    #      - "3306:3306"
+    restart: always
+    networks:
+      - app_network
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      interval: 5s
+      timeout: 10s
+      retries: 10
