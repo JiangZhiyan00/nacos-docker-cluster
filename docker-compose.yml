@@ -21,11 +21,20 @@ services:
     restart: always
     networks:
       - app_network
+    depends_on:
+      nacos1:
+        condition: service_healthy
+      nacos2:
+        condition: service_healthy
+      nacos3:
+        condition: service_healthy
 
   nacos1:
     hostname: nacos1
     container_name: nacos1
-    image: nacos/nacos-server:${NACOS_VERSION:-v2.1.0-slim}
+    build:
+      context: ./nacos
+      dockerfile: Dockerfile
     volumes:
       - /docker-data/nacos-cluster/nacos1/logs/:/home/nacos/logs/
     #    ports:
@@ -43,11 +52,18 @@ services:
       mysql:
         # mysql健康检查
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/v1/console/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   nacos2:
     hostname: nacos2
     container_name: nacos2
-    image: nacos/nacos-server:${NACOS_VERSION:-v2.1.0-slim}
+    build:
+      context: ./nacos
+      dockerfile: Dockerfile
     volumes:
       - /docker-data/nacos-cluster/nacos2/logs/:/home/nacos/logs/
     env_file:
@@ -55,16 +71,21 @@ services:
     restart: always
     networks:
       - app_network
-    # 依赖mysql
     depends_on:
       mysql:
-        # mysql健康检查
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/v1/console/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   nacos3:
     hostname: nacos3
     container_name: nacos3
-    image: nacos/nacos-server:${NACOS_VERSION:-v2.1.0-slim}
+    build:
+      context: ./nacos
+      dockerfile: Dockerfile
     volumes:
       - /docker-data/nacos-cluster/nacos3/logs/:/home/nacos/logs/
     env_file:
@@ -72,11 +93,15 @@ services:
     restart: always
     networks:
       - app_network
-    # 依赖mysql
     depends_on:
       mysql:
-        # mysql健康检查
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/v1/console/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   mysql:
     container_name: nacos-mysql
     build:
@@ -92,7 +117,7 @@ services:
     networks:
       - app_network
     healthcheck:
-      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
       timeout: 10s
       retries: 10
